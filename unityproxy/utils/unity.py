@@ -56,7 +56,7 @@ class UnityProxy:
     def __next__(self) -> Proxy:
         self.__iteration_index += 1
         if self.__iteration_index >= len(self.__proxies):
-            self.__iteration_index
+            self.__iteration_index = -1
             raise StopIteration
         return self.__proxies[self.__iteration_index]
     
