@@ -4,6 +4,7 @@ from queue import Queue
 from io import TextIOWrapper
 from copy import deepcopy
 from typing import List, Union, Callable
+from functools import wraps
 
 from .proxy import Proxy
 from ..types import PROXY_TYPEHINT
@@ -26,23 +27,25 @@ class UnityProxy:
         self.from_ = UnityAddFrom(self)
         self.to = UnityConvertTo(self)
 
-    def add_by_line(self, line: str, proxy_type: PROXY_TYPEHINT):
-        if self.__ignore_err:
-            try:
-                self.__proxies.append(Proxy.from_line(line, proxy_type, self.__custom_parser))
-            except:...
-        else:
-            self.__proxies.append(Proxy.from_line(line, proxy_type, self.__custom_parser))
+    def ignore_errors(method):
+        @wraps(method)
+        def wrapper(self, *args, **kwargs):
+            if self.__ignore_err:
+                try:
+                    return method(self, *args, **kwargs)
+                except Exception as err:
+                    print(f"ignored error in {method.__name__}: {err}")
+            else:
+                return method(self, *args, **kwargs)
+        return wrapper
 
+    @ignore_errors
+    def add_by_line(self, line: str, proxy_type: PROXY_TYPEHINT):
+        self.__proxies.append(Proxy.from_line(line, proxy_type, self.__custom_parser))
+
+    @ignore_errors
     def add_by_values(self, ip: str, port: int, type_: PROXY_TYPEHINT, login: str=None, password: str=None):
-        #TODO mb create decorator
-        if self.__ignore_err:
-            try:
-                self.__proxies.append(Proxy(ip=ip, port=port, type_=type_, login=login, password=password))
-            except: ...
-        else:
-            self.__proxies.append(Proxy(ip=ip, port=port, type_=type_, login=login, password=password))
-        
+        self.__proxies.append(Proxy(ip=ip, port=port, type_=type_, login=login, password=password))
         
     def remove(self, proxy: Proxy):
         self.__proxies.remove(proxy)
